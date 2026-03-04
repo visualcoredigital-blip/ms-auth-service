@@ -50,4 +50,8 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/public/health")
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("OK");
+    }    
 }

@@ -27,7 +27,8 @@ public class SecurityConfig {
             .cors(withDefaults()) // Activa el procesamiento de CORS definido abajo
             .csrf(csrf -> csrf.disable()) 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() 
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/public/health").permitAll() 
                 .anyRequest().authenticated()
             )
             .httpBasic(withDefaults());
