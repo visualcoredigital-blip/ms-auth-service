@@ -24,14 +24,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(withDefaults()) // Activa el procesamiento de CORS definido abajo
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
             .csrf(csrf -> csrf.disable()) 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
+                // 1. Excepción explícita para el health check
                 .requestMatchers("/api/auth/public/health").permitAll() 
+                
+                // 2. Permitimos el resto de auth (login, etc)
+                .requestMatchers("/api/auth/**").permitAll() 
+                
+                // 3. Cualquier otra cosa (si la hubiera) protegida
                 .anyRequest().authenticated()
             )
-            .httpBasic(withDefaults());
+            // Deshabilitamos httpBasic para que no pida login de ventana emergente en el health check
+            .httpBasic(basic -> basic.disable()); 
         
         return http.build();
     }
