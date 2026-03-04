@@ -25,7 +25,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        // 1. Validar contra la DB (Postgres/Supabase)
+        // 1. Validar contra la DB (Spring Security hace el trabajo sucio)
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
                 loginRequest.getUsername(), 
@@ -33,13 +33,21 @@ public class AuthController {
             )
         );
 
-        // 2. Si llegamos aquí, los datos son correctos. Generamos el token:
-        String token = jwtUtils.generateToken(authentication.getName());
+        // 2. Extraer el rol del objeto authentication
+        // Tomamos el primero de la lista (asumiendo que tiene uno principal como ROLE_USER o ROLE_ADMIN)
+        String role = authentication.getAuthorities().stream()
+                .map(r -> r.getAuthority())
+                .findFirst()
+                .orElse("ROLE_USER");
 
-        // 3. Devolver el JSON con el token
+        // 3. Generar el token incluyendo el rol (usando el cambio que hicimos en JwtUtils)
+        String token = jwtUtils.generateToken(authentication.getName(), role);
+
+        // 4. Devolver el JSON con el token
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
         
         return ResponseEntity.ok(response);
     }
+
 }
