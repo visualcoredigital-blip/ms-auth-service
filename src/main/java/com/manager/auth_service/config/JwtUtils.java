@@ -19,18 +19,18 @@ public class JwtUtils {
 
     private final long EXPIRATION_TIME = 86400000; 
 
-    public String generateToken(String username) {
-        // Validación de seguridad para la clave
+    // Cambiamos la firma del método para recibir el rol
+    public String generateToken(String username, String role) {
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
 
         return Jwts.builder()
                 .setSubject(username)
+                .claim("role", role) // <--- Agregamos el rol aquí
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
-
     public String getUsernameFromToken(String token) {
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
         
