@@ -1,7 +1,20 @@
+# ETAPA 1: Compilación (Maven construye el JAR)
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
+WORKDIR /app
+# Copiamos archivos de configuración de Maven y el código fuente
+COPY pom.xml .
+COPY src ./src
+# Generamos el archivo JAR (esto crea la carpeta target dentro de Docker)
+RUN mvn clean package -DskipTests
+
+# ETAPA 2: Ejecución (Imagen ligera para correr la app)
 FROM eclipse-temurin:17-jdk-alpine
 WORKDIR /app
-# El COPY se mantiene, pero el volumen lo ignorará al arrancar
-COPY target/auth-service-0.0.1-SNAPSHOT.jar app.jar 
-EXPOSE 8081
-# CAMBIO AQUÍ: Apuntamos a la ruta real dentro del volumen
-ENTRYPOINT ["java", "-jar", "target/auth-service-0.0.1-SNAPSHOT.jar"]
+# Copiamos el JAR generado en la etapa de build y lo renombramos a auth-service.jar
+COPY --from=build /app/target/*.jar auth-service.jar
+
+# El puerto que configuramos antes (8001 para Render)
+EXPOSE 8001
+
+# Ejecutamos la aplicación
+ENTRYPOINT ["java", "-jar", "auth-service.jar"]
