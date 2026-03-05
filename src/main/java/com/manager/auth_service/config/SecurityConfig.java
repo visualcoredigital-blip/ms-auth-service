@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy; // IMPORTANTE
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -14,8 +15,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -26,17 +25,15 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
             .csrf(csrf -> csrf.disable()) 
+            // NUEVO: Forzamos que no haya estado de sesión (JWT puro)
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
             .authorizeHttpRequests(auth -> auth
-                // 1. Excepción explícita para el health check
                 .requestMatchers("/api/auth/public/health").permitAll() 
-                
-                // 2. Permitimos el resto de auth (login, etc)
                 .requestMatchers("/api/auth/**").permitAll() 
-                
-                // 3. Cualquier otra cosa (si la hubiera) protegida
                 .anyRequest().authenticated()
             )
-            // Deshabilitamos httpBasic para que no pida login de ventana emergente en el health check
             .httpBasic(basic -> basic.disable()); 
         
         return http.build();
@@ -45,16 +42,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // Lee la variable de Render o usa localhost por defecto
-        String origins = System.getenv("ALLOWED_ORIGINS");
-        if (origins == null || origins.isEmpty()) {
-            origins = "http://localhost:5173";
-        }
-
-        configuration.setAllowedOrigins(Arrays.asList(origins.split(",")));
+        // Permitimos todo para que Render no bloquee la comunicación interna
+        configuration.setAllowedOriginPatterns(Arrays.asList("*")); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(Arrays.asList("*")); 
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
