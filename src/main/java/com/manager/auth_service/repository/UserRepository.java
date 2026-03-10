@@ -11,4 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Este método es vital para que el CustomUserDetailsService 
     // pueda buscar al usuario durante el proceso de login.
     Optional<User> findByUsername(String username);
+
+    // Verificar si existe un usuario con el nombre de usuario proporcionado
+    boolean existsByUsername(String username);
 }
