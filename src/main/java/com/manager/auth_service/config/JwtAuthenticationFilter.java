@@ -55,7 +55,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                         UsernamePasswordAuthenticationToken auth = 
                             new UsernamePasswordAuthenticationToken(username, null, authorities);
-                        
+
+                        auth.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));                            
+
                         SecurityContextHolder.getContext().setAuthentication(auth);
                         logger.info("✅ Usuario autenticado en Auth-Service: {} con rol {}", username, formattedRole);
                     }
@@ -65,5 +67,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+
     }
+
 }
