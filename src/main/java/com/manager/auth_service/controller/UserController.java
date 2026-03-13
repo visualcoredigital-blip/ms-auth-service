@@ -26,8 +26,9 @@ public class UserController {
     }
 
     // POST /api/users -> Para crear usuarios
-    @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody CreateUserRequest request) {
+    @PostMapping("/create")
+    public ResponseEntity<?> create(@RequestBody CreateUserRequest request) {
+        System.out.println("¡Entré al controlador de creación!");
         User user = userService.createUser(request);
         UserResponse response = new UserResponse();
 
@@ -43,4 +44,23 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        System.out.println("🚀 eliminar usuario con ID: " + id);
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok("Usuario eliminado correctamente");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error interno al eliminar el usuario");
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> update(@PathVariable Long id, @RequestBody UserResponse userDto) {
+        UserResponse updated = userService.updateUser(id, userDto);
+        return ResponseEntity.ok(updated);
+    }    
 }
