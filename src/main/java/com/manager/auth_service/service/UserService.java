@@ -2,21 +2,22 @@ package com.manager.auth_service.service;
 
 import com.manager.auth_service.dto.UserResponse;
 import com.manager.auth_service.dto.CreateUserRequest;
-import com.manager.auth_service.model.Role;
-import com.manager.auth_service.model.User;
-import com.manager.auth_service.model.ERole;
-
-import com.manager.auth_service.repository.RoleRepository;
-import com.manager.auth_service.repository.UserRepository;
+import com.manager.auth_service.model.*; 
+import com.manager.auth_service.repository.*; 
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime; 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
-import java.util.stream.Collectors; // Agregado para el Stream API
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -29,6 +30,30 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private PasswordResetTokenRepository tokenRepository;
+
+    @Transactional 
+    public String createPasswordResetToken(String email) {
+        // 1. Buscar usuario
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con email: " + email));
+
+        // 2. LIMPIEZA: Borrar token anterior si existe para este usuario
+        tokenRepository.deleteByUser(user);
+        tokenRepository.flush(); 
+
+        // 3. Crear nuevo token
+        String token = java.util.UUID.randomUUID().toString();
+        PasswordResetToken myToken = new PasswordResetToken();
+        myToken.setToken(token);
+        myToken.setUser(user);
+        myToken.setExpiryDate(LocalDateTime.now().plusMinutes(15));
+
+        tokenRepository.save(myToken);
+        return token;
+    }
 
     public List<User> findAll() {
         return userRepository.findAll();
@@ -105,4 +130,26 @@ public class UserService {
         
         return response;
     }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        // 1. Validar: Buscar el token
+        PasswordResetToken resetToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Token inválido o no encontrado"));
+
+        // 2. Verificar Expiración
+        if (resetToken.isExpired()) {
+            tokenRepository.delete(resetToken);
+            throw new RuntimeException("El token ha expirado. Por favor, solicita uno nuevo.");
+        }
+
+        // 3. Actualizar: Encriptar y guardar
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // 4. Limpiar: Borrar el token para que sea de un solo uso
+        tokenRepository.delete(resetToken);
+    }
+
 }

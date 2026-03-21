@@ -34,6 +34,8 @@ public class SecurityConfig {
                 // 1. Permitir explícitamente el método OPTIONS (Preflight de CORS)
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll() 
+                .requestMatchers("/api/users/forgot-password").permitAll()
+                .requestMatchers("/api/users/reset-password").permitAll()
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
             // 2. Aquí está el truco: Si el filtro falla o no hay token, no debería lanzar 403 en una ruta permitAll
