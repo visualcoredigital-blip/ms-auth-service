@@ -8,15 +8,12 @@ import com.manager.auth_service.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime; 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -150,6 +147,15 @@ public class UserService {
 
         // 4. Limpiar: Borrar el token para que sea de un solo uso
         tokenRepository.delete(resetToken);
+    }
+
+    public boolean isEmailAvailable(String email, Long userId) {
+        if (userId != null) {
+            // En edición: permite el email si es el mismo que ya tiene el usuario
+            return !userRepository.existsByEmailAndIdNot(email, userId);
+        }
+        // En creación: debe ser totalmente único
+        return !userRepository.existsByEmail(email);
     }
 
 }
