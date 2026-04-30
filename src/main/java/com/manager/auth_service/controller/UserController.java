@@ -107,4 +107,16 @@ public class UserController {
         UserResponse updated = userService.updateUser(id, userDto);
         return ResponseEntity.ok(updated);
     }    
+
+    @GetMapping("/exists")
+    public ResponseEntity<Map<String, Boolean>> checkEmailExists(
+            @RequestParam String email, 
+            @RequestParam(required = false) Long userId) {
+        
+        boolean isAvailable = userService.isEmailAvailable(email, userId);
+        
+        // Retornamos 'exists: true' si el email ya está ocupado
+        return ResponseEntity.ok(Map.of("exists", !isAvailable));
+    }
+
 }
