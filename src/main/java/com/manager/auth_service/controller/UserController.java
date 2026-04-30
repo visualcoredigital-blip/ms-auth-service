@@ -3,13 +3,13 @@ package com.manager.auth_service.controller;
 import com.manager.auth_service.dto.CreateUserRequest;
 import com.manager.auth_service.dto.UserResponse;
 import com.manager.auth_service.model.User;
+import com.manager.auth_service.service.EmailService;
 import com.manager.auth_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.manager.auth_service.dto.ResetPasswordDTO;
 
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.HashMap;
@@ -21,29 +21,34 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private EmailService emailService;
+
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         
         try {
-            // Llamamos al servicio para crear el token en la tabla independiente
+            // Genera el token (Capa Service)
             String token = userService.createPasswordResetToken(email);
             
-            // Preparamos la respuesta que el Manager leerá
-            Map<String, String> response = new HashMap<>();
-            response.put("token", token);
-            response.put("message", "Token de recuperación generado exitosamente.");
+            // 2. DISPARAR EL ENVÍO (Capa EmailService)
+            emailService.sendPasswordRecoveryEmail(email, token);
             
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Token de recuperación enviado exitosamente.");
             return ResponseEntity.ok(response);
+            
         } catch (RuntimeException e) {
-            // Si el email no existe, devolvemos 404
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
             return ResponseEntity.status(404).body(errorResponse);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error interno al generar el token");
+            e.printStackTrace(); // Para ver errores de Brevo en logs de Docker
+            return ResponseEntity.status(500).body("Error al procesar la recuperación");
         }
     }
+
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDTO request) {

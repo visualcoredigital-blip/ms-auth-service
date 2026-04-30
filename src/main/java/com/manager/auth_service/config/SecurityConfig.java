@@ -31,13 +31,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) 
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 1. Permitir explícitamente el método OPTIONS (Preflight de CORS)
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/api/auth/health").permitAll() 
                 .requestMatchers("/api/auth/**").permitAll() 
                 .requestMatchers("/api/users/forgot-password").permitAll()
                 .requestMatchers("/api/users/reset-password").permitAll()
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
+
             // 2. Aquí está el truco: Si el filtro falla o no hay token, no debería lanzar 403 en una ruta permitAll
                 .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);        
         return http.build();
