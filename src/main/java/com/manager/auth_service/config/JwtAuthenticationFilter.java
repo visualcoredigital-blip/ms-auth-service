@@ -29,45 +29,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. OMITIR FILTRO PARA ENDPOINTS PÚBLICOS DEL AUTH-SERVICE
-        String path = request.getServletPath();
-        if (path.equals("/api/auth/login") || path.equals("/api/auth/public/health")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        
         String header = request.getHeader("Authorization");
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            
-            try {
-                if (jwtUtils.validateToken(token)) {
-                    String username = jwtUtils.getUsernameFromToken(token);
-                    String role = jwtUtils.getRoleFromToken(token);
-                    
-                    if (username != null && role != null) {
-                        // Importante: Spring Security espera "ROLE_ADMIN", no solo "ADMIN"
-                        String formattedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-                        
-                        SimpleGrantedAuthority authority = new SimpleGrantedAuthority(formattedRole);
-                        List<SimpleGrantedAuthority> authorities = Collections.singletonList(authority);
-
-                        UsernamePasswordAuthenticationToken auth = 
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
-
-                        auth.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));                            
-
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                        logger.info("✅ Usuario autenticado en Auth-Service: {} con rol {}", username, formattedRole);
-                    }
-                }
-            } catch (Exception e) {
-                logger.error("❌ Error validando token JWT en Auth-Service: {}", e.getMessage());
-            }
+        if (header == null || !header.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return; // IMPORTANTE: salir del método aquí
         }
+
+        // Si llegamos aquí, es porque SÍ hay un token Bearer para procesar
+        String token = header.substring(7);
+        
+        try {
+            if (jwtUtils.validateToken(token)) {
+                String username = jwtUtils.getUsernameFromToken(token);
+                String role = jwtUtils.getRoleFromToken(token);
+                
+                if (username != null && role != null) {
+                    String formattedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority(formattedRole);
+                    List<SimpleGrantedAuthority> authorities = Collections.singletonList(authority);
+
+                    UsernamePasswordAuthenticationToken auth = 
+                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+
+                    auth.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    logger.info("✅ Usuario autenticado: {} con rol {}", username, formattedRole);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("❌ Error validando token JWT: {}", e.getMessage());
+            // Opcional: podrías limpiar el contexto si falla la validación
+            SecurityContextHolder.clearContext();
+        }
+
         filterChain.doFilter(request, response);
-
     }
-
 }
